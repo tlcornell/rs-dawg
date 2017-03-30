@@ -8,23 +8,22 @@ extern crate time;
 extern crate dawg;
 
 use dawg::dawg::DawgBuilder;
+use log::LogLevelFilter::{Info as LogInfo, Trace as LogTrace};
 
 #[test]
 fn builder_works() {
     let logger_config = fern::DispatchConfig {
         format: Box::new(
-            |msg: &str, level: &log::LogLevel, _location: &log::LogLocation| {
-                // This is a fairly simple format, though it's possible to do more complicated ones.
-                // This closure can contain any code, as long as it produces a String message.
+            |msg: &str, lvl: &log::LogLevel, _loc: &log::LogLocation| {
                 format!("[{}] {:<8}{}", 
                         time::now().strftime("%Y-%m-%d %H:%M:%S").unwrap(), 
-                        level, 
+                        lvl, 
                         msg)
         }),
         output: vec![fern::OutputConfig::stdout()],
-        level: log::LogLevelFilter::Trace,
+        level: LogTrace,
     };
-    if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
+    if let Err(e) = fern::init_global_logger(logger_config, LogTrace) {
         panic!("Failed to initialize global logger: {}", e);
     }
 
@@ -32,8 +31,12 @@ fn builder_works() {
     let builder = DawgBuilder::new();
     let dawg = builder
         .add_word("abra")
-        .add_word("absol")
+        .add_word("absol")    // remove this and see how storage of "kadabra" changes
         .add_word("crobat")
+        .add_word("golbat")
+        .add_word("kadabra")
+        .add_word("mew")
+        .add_word("mewtwo")
         .add_word("zubat")
         .build();
     dawg.print();

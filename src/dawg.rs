@@ -27,6 +27,15 @@ impl DAWG {
         state1.react(&self.states, c)
     }
 
+    pub fn print(&self) {
+        info!("Printing DAWG...");
+        self.states.print();
+    }
+
+    //------------------------------------------------------------------
+    // Below methods are just for construction
+    //
+
     pub fn has_any_children(&self, q: StateId) -> bool {
         self.states.at(q).has_any_children()
     }
@@ -67,16 +76,12 @@ impl DAWG {
         let mut state = self.states.at_mut(q);
         state.is_final = is_fin;
     }
-
-    pub fn print(&self) {
-        info!("Printing DAWG...");
-        self.states.print();
-    }
 }
 
 
 pub struct DawgBuilder {
 
+    state_rack: StateSet,
     registry: Registry,
     dawg: DAWG,
 
@@ -86,19 +91,20 @@ impl DawgBuilder {
 
     pub fn new() -> DawgBuilder {
         DawgBuilder {
+            state_rack: StateSet::new(),
             registry: Registry::new(),
             dawg: DAWG::new(),
         }
     }
 
     pub fn build(mut self) -> DAWG {
-        /*
-        State* q0 = getStartState();
-        m_Reg->replace_or_register (q0);
-        delete m_Reg;
-        m_Reg = NULL;
-        */
         self.registry.replace_or_register(0, &mut self.dawg);
+        self.registry.add(0, &mut self.dawg);
+        // Now use the Registry to construct the finished DAWG...
+        // for state_id in registry.values() {
+        //    let state = /* get State object for ID */
+        //    dawg.add_state(state);  // move somehow from StateSet to Vec
+        // }
         self.dawg
     }
 

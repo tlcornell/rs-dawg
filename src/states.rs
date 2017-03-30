@@ -21,6 +21,7 @@ impl StateSet {
 
     pub fn new() -> StateSet {
         let q1 = State {
+            id: 0,
             is_final: false,
             arcs: vec![],
         };
@@ -48,19 +49,22 @@ impl StateSet {
     }
 
     pub fn make_state(&mut self) -> StateId {
-        let q = State {
+        let mut q = State {
+            id: 0,
             is_final: false,
             arcs: vec![],
         };
+        let id;
         if self.free.is_empty() {
-            let id = self.states.len();
+            id = self.states.len();
+            q.id = id;
             self.states.push(q);
-            id
         } else {
-            let id = self.free.pop().unwrap();
+            id = self.free.pop().unwrap();
+            q.id = id; // make borrow checker happy
             self.states[id] = q;
-            id
         }
+        id
     }
 
     pub fn print(&self) {
@@ -69,16 +73,7 @@ impl StateSet {
             if self.free.contains(&id) {
                 continue;
             }
-            if state.is_final {
-                print!("*");
-            } else {
-                print!(" ");
-            }
-            print!("{}:", id);
-            if state.arcs.is_empty() { println!(); }
-            for t in state.arcs.iter() {
-                println!("\t{} -> {} ({})", t.label, t.target, t.hash_increment);
-            }
+            state.print(id);
         }
     }
 
@@ -87,6 +82,7 @@ impl StateSet {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct State {
+    id: StateId,
     pub is_final: bool,
     arcs: Vec<Transition>,
 }
@@ -140,6 +136,19 @@ impl State {
         let result = hasher.finish();
         trace!("state_hash: {} #-> {:x}", id, result);
         result
+    }
+
+    pub fn print(&self, id: StateId) {
+        if self.is_final {
+            print!("*");
+        } else {
+            print!(" ");
+        }
+        print!("{}:", id);
+        if self.arcs.is_empty() { println!(); }
+        for t in self.arcs.iter() {
+            println!("\t{} -> {} ({})", t.label, t.target, t.hash_increment);
+        }
     }
 
 }

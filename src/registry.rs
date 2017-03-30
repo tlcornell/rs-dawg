@@ -19,6 +19,9 @@ impl Registry {
 
     /**
      * Don't call this unless you know that q has some children.
+     * Note that q itself is not added to the registry here. 
+     * That means that state 0 (and only state 0) will need to be added
+     * by hand.
      */
     pub fn replace_or_register(&mut self, q: StateId, dawg: &mut DAWG) {
         trace!("replace_or_register: q = {}", q);
@@ -47,7 +50,7 @@ impl Registry {
         self.states.get(&key)
     }
 
-    fn add(&mut self, q: StateId, dawg: &DAWG) {
+    pub fn add(&mut self, q: StateId, dawg: &DAWG) {
         let key = dawg.state_hash(q);
         self.states.entry(key).or_insert(q);
     }
