@@ -62,6 +62,26 @@ impl StateSet {
             id
         }
     }
+
+    pub fn print(&self) {
+        trace!("DAWG size: {}", self.states.len());
+        for (id, state) in self.states.iter().enumerate() {
+            if self.free.contains(&id) {
+                continue;
+            }
+            if state.is_final {
+                print!("*");
+            } else {
+                print!(" ");
+            }
+            print!("{}:", id);
+            if state.arcs.is_empty() { println!(); }
+            for t in state.arcs.iter() {
+                println!("\t{} -> {} ({})", t.label, t.target, t.hash_increment);
+            }
+        }
+    }
+
 }
 
 

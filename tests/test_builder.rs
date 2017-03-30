@@ -30,10 +30,11 @@ fn builder_works() {
 
     info!("Running builder_works");
     let builder = DawgBuilder::new();
-    builder
+    let dawg = builder
         .add_word("abra")
         .add_word("absol")
         .add_word("crobat")
         .add_word("zubat")
         .build();
+    dawg.print();
 }

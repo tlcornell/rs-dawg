@@ -67,6 +67,11 @@ impl DAWG {
         let mut state = self.states.at_mut(q);
         state.is_final = is_fin;
     }
+
+    pub fn print(&self) {
+        info!("Printing DAWG...");
+        self.states.print();
+    }
 }
 
 
