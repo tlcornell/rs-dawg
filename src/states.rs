@@ -1,8 +1,10 @@
 /// states.rs
 
+use std::hash::{Hash, Hasher, SipHasher};
+
 pub type StateId = usize;
 pub type HashIncrement = usize;
-pub type StateHash = u64;
+pub type StateHash = u64; //String;
 
 pub struct StateSet {
 
@@ -86,10 +88,15 @@ impl State {
             label: lbl,
             hash_increment: 0,
             target: tgt,
-        })
+        });
     }
 
     pub fn react(&self, qs: &StateSet, c: char) -> Option<(StateId, HashIncrement)> {
+        for t in &self.arcs {
+            if c == t.label {
+                return Some((t.target, t.hash_increment));
+            }
+        }
         None
     }
 
@@ -105,6 +112,14 @@ impl State {
     pub fn set_last_child(&mut self, q: StateId) {
         let last_arc: &mut Transition = self.arcs.last_mut().unwrap();
         last_arc.target = q;
+    }
+
+    pub fn registry_key(&self, id: StateId) -> StateHash {
+        let mut hasher = SipHasher::new();
+        self.hash(&mut hasher);
+        let result = hasher.finish();
+        trace!("state_hash: {} #-> {:x}", id, result);
+        result
     }
 
 }

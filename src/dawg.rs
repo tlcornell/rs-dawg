@@ -1,7 +1,5 @@
 /// dawg.rs
 
-use std::hash::{Hash, Hasher, SipHasher};
-
 use registry::Registry;
 use states::{StateId, StateSet, State, StateHash};
 
@@ -49,9 +47,7 @@ impl DAWG {
 
     pub fn state_hash(&self, id: StateId) -> StateHash {
         let state = self.states.at(id);
-        let mut hasher = SipHasher::new();
-        state.hash(&mut hasher);
-        hasher.finish()
+        state.registry_key(id)
     }
 
     pub fn make_state(&mut self) -> StateId {
@@ -62,6 +58,7 @@ impl DAWG {
      * This assumes that state q2 exists!
      */
     pub fn add_child(&mut self, q1: StateId, ch: char, q2: StateId) {
+        //trace!("add_child: q1 = {}; ch = '{}'; q2 = {}", q1, ch, q2);
         let mut state = self.states.at_mut(q1);
         state.add_trans(ch, q2);
     }
@@ -89,12 +86,21 @@ impl DawgBuilder {
         }
     }
 
-    pub fn build(self) -> DAWG {
+    pub fn build(mut self) -> DAWG {
+        /*
+        State* q0 = getStartState();
+        m_Reg->replace_or_register (q0);
+        delete m_Reg;
+        m_Reg = NULL;
+        */
+        self.registry.replace_or_register(0, &mut self.dawg);
         self.dawg
     }
 
     pub fn add_word(mut self, word: &str) -> DawgBuilder {
+        trace!("add_word: Adding word '{}'", word);
         let (common_prefix, last_state) = self.recognized_prefix(word);
+        trace!("add_word: common_prefix: '{}'; last_state: {}", common_prefix, last_state);
         if self.dawg.has_any_children(last_state) {
             self.registry.replace_or_register(last_state, &mut self.dawg);
         }
@@ -122,6 +128,7 @@ impl DawgBuilder {
     }
 
     fn add_suffix(&mut self, q: StateId, suff: &str) {
+        trace!("add_suffix: q = {}, suff = '{}'", q, suff);
         let mut q1 = q;
         for ch in suff.chars() {
             let q2 = self.dawg.make_state();
