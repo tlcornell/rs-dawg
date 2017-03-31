@@ -81,7 +81,7 @@ impl StateSet {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct State {
     id: StateId,
     pub is_final: bool,
@@ -152,4 +152,16 @@ impl State {
         }
     }
 
+}
+
+
+impl Hash for State {
+    /**
+     * We have to implement Hash for State so that we can suppress the
+     * id field, which introduces artificial distinctions.
+     */
+    fn hash<H: Hasher>(&self, hasher_state: &mut H) {
+        self.is_final.hash(hasher_state);
+        self.arcs.hash(hasher_state);
+    }
 }
