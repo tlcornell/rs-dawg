@@ -5,5 +5,5 @@ extern crate log;
 
 pub mod dawg;
 
-mod registry;
+//mod registry;
 mod states;

@@ -68,15 +68,17 @@ impl StateSet {
         id
     }
 
+    #[allow(dead_code)]
     pub fn print(&self) {
         trace!("DAWG size: {}", self.states.len());
         for (id, state) in self.states.iter().enumerate() {
             if self.free.contains(&id) {
                 continue;
             }
-            state.print(id);
+            state.print();
         }
     }
+
 
 }
 
@@ -131,21 +133,21 @@ impl State {
         last_arc.target = q;
     }
 
-    pub fn registry_key(&self, id: StateId) -> StateHash {
+    pub fn registry_key(&self) -> StateHash {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         let result = hasher.finish();
-        trace!("state_hash: {} #-> {:x}", id, result);
+        trace!("state_hash: {} #-> {:x}", self.id, result);
         result
     }
 
-    pub fn print(&self, id: StateId) {
+    pub fn print(&self) {
         if self.is_final {
             print!("*");
         } else {
             print!(" ");
         }
-        print!("{}:", id);
+        print!("{}:", self.id);
         if self.arcs.is_empty() { println!(); }
         for t in self.arcs.iter() {
             println!("\t{} -> {} ({})", t.label, t.target, t.hash_increment);

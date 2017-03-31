@@ -31,7 +31,7 @@ fn builder_works() {
     let builder = DawgBuilder::new();
     let dawg = builder
         .add_word("abra")
-        .add_word("absol")    // remove this and see how storage of "kadabra" changes
+//        .add_word("absol")    // remove this and see how storage of "kadabra" changes
         .add_word("crobat")
         .add_word("golbat")
         .add_word("kadabra")
@@ -40,4 +40,5 @@ fn builder_works() {
         .add_word("zubat")
         .build();
     dawg.print();
+    info!("Done");
 }
