@@ -23,23 +23,23 @@ impl Registry {
      * That means that state 0 (and only state 0) will need to be added
      * by hand.
      */
-    pub fn replace_or_register(&mut self, q: StateId, dawg: &mut DAWG) {
-        trace!("replace_or_register: q = {}", q);
-        let q_child = dawg.get_last_child(q);
-        if dawg.has_any_children(q_child) {
-            self.replace_or_register(q_child, dawg);
+    pub fn replace_or_register(&mut self, parent_id: StateId, dawg: &mut DAWG) {
+        trace!("replace_or_register: parent_id = {}", parent_id);
+        let child_id = dawg.get_last_child(parent_id);
+        if dawg.has_any_children(child_id) {
+            self.replace_or_register(child_id, dawg);
         }
-        // On return from recursion, all states reachable from q_child
-        // are from the registry. q_child itself may or may not be in 
+        // On return from recursion, all states reachable from child_id
+        // are from the registry. child_id itself may or may not be in 
         // the registry, so check that now.
-        if let Some(eq) = self.search_for_equiv(q_child, dawg) {
-            trace!("replace_or_register: Found equiv: {} = {}", q_child, *eq);
-            dawg.set_last_child(q, *eq);
-            dawg.remove_state(q_child);
+        if let Some(eq) = self.search_for_equiv(child_id, dawg) {
+            trace!("replace_or_register: Found equiv: {} = {}", child_id, *eq);
+            dawg.set_last_child(parent_id, *eq);
+            dawg.remove_state(child_id);
             return;
         } 
-        trace!("replace_or_register: Registering {}", q_child);
-        self.add(q_child, dawg);
+        trace!("replace_or_register: Registering {}", child_id);
+        self.add(child_id, dawg);
         // The above cannot use if-else, otherwise the borrow checker 
         // will not accept it. This way the first use of self is out of
         // scope by the time we hit the second.

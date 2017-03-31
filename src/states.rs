@@ -1,6 +1,7 @@
 /// states.rs
 
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 
 pub type StateId = usize;
 pub type HashIncrement = usize;
@@ -107,7 +108,7 @@ impl State {
         });
     }
 
-    pub fn react(&self, qs: &StateSet, c: char) -> Option<(StateId, HashIncrement)> {
+    pub fn react(&self, c: char) -> Option<(StateId, HashIncrement)> {
         for t in &self.arcs {
             if c == t.label {
                 return Some((t.target, t.hash_increment));
@@ -131,7 +132,7 @@ impl State {
     }
 
     pub fn registry_key(&self, id: StateId) -> StateHash {
-        let mut hasher = SipHasher::new();
+        let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         let result = hasher.finish();
         trace!("state_hash: {} #-> {:x}", id, result);

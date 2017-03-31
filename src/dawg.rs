@@ -24,7 +24,7 @@ impl DAWG {
 
     pub fn delta(&self, q1: StateId, c: char) -> Option<(StateId, HashIncrement)> {
         let state1 = &self.states.at(q1);
-        state1.react(&self.states, c)
+        state1.react(c)
     }
 
     pub fn print(&self) {
@@ -81,7 +81,7 @@ impl DAWG {
 
 pub struct DawgBuilder {
 
-    state_rack: StateSet,
+    //state_rack: StateSet,
     registry: Registry,
     dawg: DAWG,
 
@@ -91,7 +91,7 @@ impl DawgBuilder {
 
     pub fn new() -> DawgBuilder {
         DawgBuilder {
-            state_rack: StateSet::new(),
+            //state_rack: StateSet::new(),
             registry: Registry::new(),
             dawg: DAWG::new(),
         }
@@ -129,7 +129,7 @@ impl DawgBuilder {
                 None => {
                     break;
                 }
-                Some((q2, h)) => {
+                Some((q2, _h)) => {
                     end += 1;
                     q1 = q2;
                 }
