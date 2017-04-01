@@ -8,7 +8,7 @@ extern crate time;
 extern crate dawg;
 
 use dawg::dawg::DawgBuilder;
-use log::LogLevelFilter::{Info as LogInfo, Trace as LogTrace};
+use log::LogLevelFilter::{Warn as LogWarn, Info as LogInfo, Trace as LogTrace};
 
 #[test]
 fn builder_works() {
@@ -23,7 +23,7 @@ fn builder_works() {
         output: vec![fern::OutputConfig::stdout()],
         level: LogTrace,
     };
-    if let Err(e) = fern::init_global_logger(logger_config, LogTrace) {
+    if let Err(e) = fern::init_global_logger(logger_config, LogWarn) {
         panic!("Failed to initialize global logger: {}", e);
     }
 
@@ -39,5 +39,14 @@ fn builder_works() {
         .add_word("zubat")
         .build();
     dawg.print();
-    info!("Done");
+    
+    assert_eq!(dawg.hash_term("abra"), 1);
+    assert_eq!(dawg.hash_term("absol"), 2);
+    assert_eq!(dawg.hash_term("crobat"), 3);
+    assert_eq!(dawg.hash_term("golbat"), 4);
+    assert_eq!(dawg.hash_term("kadabra"), 5);
+    assert_eq!(dawg.hash_term("mew"), 6);
+    assert_eq!(dawg.hash_term("mewtwo"), 7);
+    assert_eq!(dawg.hash_term("zubat"), 8);
+
 }

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 //use registry::Registry;
-use states::{StateId, StateSet, State, StateHash, Transition, HashIncrement};
+use states::{StateId, StateSet, State, StateHash, HashIncrement};
 
 pub struct DAWG {
     states: Vec<State>,
@@ -25,6 +25,23 @@ impl DAWG {
     pub fn delta(&self, q1: StateId, c: char) -> Option<(StateId, HashIncrement)> {
         let state1 = &self.states[q1];
         state1.react(c)
+    }
+
+    pub fn hash_term(&self, term: &str) -> HashIncrement {
+        let mut hash_val: HashIncrement = 0;
+        let mut q = 0;
+        for c in term.chars() {
+            match self.states[q].react(c) {
+                Some((nxt, hsh)) => {
+                    q = nxt;
+                    hash_val += hsh;
+                }
+                None => {
+                    panic!("Term '{}' not recognized!", term);
+                }
+            }
+        }
+        hash_val
     }
 
     pub fn print(&self) {
@@ -86,27 +103,32 @@ impl DawgBuilder {
         }
     }
 
-    fn hashes_for_state(states: &mut Vec<State>, id: StateId, memo: &mut Vec<HashIncrement>) {
+    fn hashes_for_state(
+        states: &mut Vec<State>, 
+        id: StateId, 
+        memo: &mut Vec<HashIncrement>
+    ) {
         let mut counter: HashIncrement = 0;
-        for tid in 0..states[id].arcs.len() {
-            counter = DawgBuilder::compute_trans_hash(&mut counter, states, id, tid, memo);
+        let num_arcs = states[id].arcs.len();
+        for tid in 0..num_arcs {
+            counter = DawgBuilder::compute_trans_hash(counter, states, id, tid, memo);
         }
     }
 
     fn compute_trans_hash(
-        counter: &mut HashIncrement,
+        counter: HashIncrement,
         states:  &mut Vec<State>,
         state_id: StateId,
         trans_id: usize,
         memo: &mut Vec<HashIncrement>
     ) -> HashIncrement {
-        let mut increment = *counter;
+        let mut increment = counter;
         let target = states[state_id].arcs[trans_id].target;
         if states[target].is_final() {
             increment += 1;
         }
         states[state_id].arcs[trans_id].hash_increment = increment;
-        *counter + DawgBuilder::right_lang_size(states, target, memo)
+        counter + DawgBuilder::right_lang_size(states, target, memo)
     }
 
     fn right_lang_size(
