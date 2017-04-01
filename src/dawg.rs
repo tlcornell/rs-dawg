@@ -3,9 +3,7 @@
 use std::collections::HashMap;
 
 //use registry::Registry;
-use states::{StateId, StateSet, State, StateHash};
-
-type HashIncrement = usize;
+use states::{StateId, StateSet, State, StateHash, Transition, HashIncrement};
 
 pub struct DAWG {
     states: Vec<State>,
@@ -59,17 +57,76 @@ impl DawgBuilder {
         let q0 = self.states.at(0);
         let key0 = q0.registry_key();
         self.registry.insert(key0, 0);
-        // We would like to iterate over the registry here, but there's no
-        // guarantee we'd get state 0 first.
+        // Now remove unregistered states, yielding a "compressed"
+        // state vector that will go in the DAWG.
+        // Note that the use of a free-list in StateSet assures that our
+        // final state IDs make a proper prefix of the natural numbers.
+        // So we can use the state ID as an index into the final state vector.
         let size = self.registry.len();
         let mut states: Vec<State> = Vec::with_capacity(size);
         unsafe { states.set_len(size); }
         for v in self.registry.values() {
             states[*v] = self.states.at(*v).clone();
         }
+        // We should be able to discard the DawgBuilder data members at this point.
+        DawgBuilder::add_hash_increments(&mut states);
         DAWG {
             states: states,
         }
+    }
+
+    fn add_hash_increments(states: &mut Vec<State>) {
+        let size = states.len();
+        let mut memo: Vec<HashIncrement> = Vec::with_capacity(size);
+        for _ in 0..size {
+            memo.push(0);
+        }
+        for id in 0..size {
+            DawgBuilder::hashes_for_state(states, id, &mut memo);
+        }
+    }
+
+    fn hashes_for_state(states: &mut Vec<State>, id: StateId, memo: &mut Vec<HashIncrement>) {
+        let mut counter: HashIncrement = 0;
+        for tid in 0..states[id].arcs.len() {
+            counter = DawgBuilder::compute_trans_hash(&mut counter, states, id, tid, memo);
+        }
+    }
+
+    fn compute_trans_hash(
+        counter: &mut HashIncrement,
+        states:  &mut Vec<State>,
+        state_id: StateId,
+        trans_id: usize,
+        memo: &mut Vec<HashIncrement>
+    ) -> HashIncrement {
+        let mut increment = *counter;
+        let target = states[state_id].arcs[trans_id].target;
+        if states[target].is_final() {
+            increment += 1;
+        }
+        states[state_id].arcs[trans_id].hash_increment = increment;
+        *counter + DawgBuilder::right_lang_size(states, target, memo)
+    }
+
+    fn right_lang_size(
+        states: &mut Vec<State>, 
+        id: StateId, 
+        memo: &mut Vec<HashIncrement>
+    ) -> HashIncrement {
+        let mut counter = memo[id];
+        if counter > 0 {
+            return counter;
+        }
+        if states[id].is_final() {
+            counter = 1;
+        }
+        for tid in 0..states[id].arcs.len() {
+            let tgt = states[id].arcs[tid].target;
+            counter += DawgBuilder::right_lang_size(states, tgt, memo);
+        }
+        memo[id] = counter;
+        counter
     }
 
     pub fn add_word(mut self, word: &str) -> DawgBuilder {
@@ -118,43 +175,33 @@ impl DawgBuilder {
     //---------------------------------------------------------------------
 
 
-    pub fn has_any_children(&self, q: StateId) -> bool {
+    fn has_any_children(&self, q: StateId) -> bool {
         self.states.at(q).has_any_children()
     }
 
-    pub fn get_last_child(&self, q: StateId) -> StateId {
+    fn get_last_child(&self, q: StateId) -> StateId {
         let s: &State = self.states.at(q);
         s.get_last_child()
     }
 
-    pub fn set_last_child(&mut self, q1: StateId, q2: StateId) {
-        let s: &mut State = self.states.at_mut(q1);
-        s.set_last_child(q2);
-    }
-
-    pub fn remove_state(&mut self, q: StateId) {
+    fn remove_state(&mut self, q: StateId) {
         self.states.remove(q);
     }
 
-    pub fn state_hash(&self, id: StateId) -> StateHash {
-        let state = self.states.at(id);
-        state.registry_key()
-    }
-
-    pub fn make_state(&mut self) -> StateId {
+    fn make_state(&mut self) -> StateId {
         self.states.make_state()
     }
 
     /**
      * This assumes that state q2 exists!
      */
-    pub fn add_child(&mut self, q1: StateId, ch: char, q2: StateId) {
+    fn add_child(&mut self, q1: StateId, ch: char, q2: StateId) {
         //trace!("add_child: q1 = {}; ch = '{}'; q2 = {}", q1, ch, q2);
         let mut state = self.states.at_mut(q1);
         state.add_trans(ch, q2);
     }
 
-    pub fn set_final(&mut self, q: StateId, is_fin: bool) {
+    fn set_final(&mut self, q: StateId, is_fin: bool) {
         let mut state = self.states.at_mut(q);
         state.is_final = is_fin;
     }
@@ -169,7 +216,7 @@ impl DawgBuilder {
      * That means that state 0 (and only state 0) will need to be added
      * by hand.
      */
-    pub fn replace_or_register(&mut self, parent_id: StateId) {
+    fn replace_or_register(&mut self, parent_id: StateId) {
         trace!("replace_or_register: parent_id = {}", parent_id);
         let child_id = self.get_last_child(parent_id);
         if self.has_any_children(child_id) {

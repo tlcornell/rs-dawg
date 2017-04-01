@@ -28,10 +28,9 @@ fn builder_works() {
     }
 
     info!("Running builder_works");
-    let builder = DawgBuilder::new();
-    let dawg = builder
+    let dawg = DawgBuilder::new()
         .add_word("abra")
-//        .add_word("absol")    // remove this and see how storage of "kadabra" changes
+        .add_word("absol")    // remove this and see how storage of "kadabra" changes
         .add_word("crobat")
         .add_word("golbat")
         .add_word("kadabra")

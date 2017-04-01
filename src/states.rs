@@ -87,15 +87,15 @@ impl StateSet {
 pub struct State {
     id: StateId,
     pub is_final: bool,
-    arcs: Vec<Transition>,
+    pub arcs: Vec<Transition>,
 }
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct Transition {
+pub struct Transition {
     label: char,
-    hash_increment: HashIncrement,
-    target: StateId,
+    pub hash_increment: HashIncrement,
+    pub target: StateId,
 }
 
 
@@ -117,6 +117,10 @@ impl State {
             }
         }
         None
+    }
+
+    pub fn is_final(&self) -> bool {
+        self.is_final
     }
 
     pub fn has_any_children(&self) -> bool {
