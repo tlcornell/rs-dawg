@@ -8,6 +8,7 @@ extern crate time;
 extern crate dawg;
 
 use dawg::dawg::DawgBuilder;
+#[allow(unused_imports)]
 use log::LogLevelFilter::{Warn as LogWarn, Info as LogInfo, Trace as LogTrace};
 
 #[test]
@@ -37,6 +38,7 @@ fn builder_works() {
         .add_word("mew")
         .add_word("mewtwo")
         .add_word("zubat")
+        .to_hash_builder()
         .build();
     dawg.print();
     

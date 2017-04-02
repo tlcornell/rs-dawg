@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use states::{StateId, StateSet, State, StateHash, HashIncrement};
 
 pub struct DAWG {
-    states: Vec<State>,
+    pub states: Vec<State>,
 }
 
 
@@ -57,6 +57,7 @@ pub struct DawgBuilder {
 
     states: StateSet,
     registry: HashMap<StateHash, StateId>,
+    dawg: DAWG,
 
 }
 
@@ -66,10 +67,23 @@ impl DawgBuilder {
         DawgBuilder {
             states: StateSet::new(),
             registry: HashMap::new(),
+            dawg: DAWG::new(),
         }
     }
 
     pub fn build(mut self) -> DAWG {
+        self.done_adding();
+        self.dawg
+    }
+
+    pub fn to_hash_builder(mut self) -> HashBuilder {
+        self.done_adding();
+        HashBuilder {
+            dawg: self.dawg,
+        }
+    }
+
+    pub fn done_adding(&mut self) {
         self.replace_or_register(0);
         let q0 = self.states.at(0);
         let key0 = q0.registry_key();
@@ -80,75 +94,11 @@ impl DawgBuilder {
         // final state IDs make a proper prefix of the natural numbers.
         // So we can use the state ID as an index into the final state vector.
         let size = self.registry.len();
-        let mut states: Vec<State> = Vec::with_capacity(size);
-        unsafe { states.set_len(size); }
+        self.dawg.states.reserve_exact(size); // = Vec::with_capacity(size);
+        unsafe { self.dawg.states.set_len(size); }
         for v in self.registry.values() {
-            states[*v] = self.states.at(*v).clone();
+            self.dawg.states[*v] = self.states.at(*v).clone();
         }
-        // We should be able to discard the DawgBuilder data members at this point.
-        DawgBuilder::add_hash_increments(&mut states);
-        DAWG {
-            states: states,
-        }
-    }
-
-    fn add_hash_increments(states: &mut Vec<State>) {
-        let size = states.len();
-        let mut memo: Vec<HashIncrement> = Vec::with_capacity(size);
-        for _ in 0..size {
-            memo.push(0);
-        }
-        for id in 0..size {
-            DawgBuilder::hashes_for_state(states, id, &mut memo);
-        }
-    }
-
-    fn hashes_for_state(
-        states: &mut Vec<State>, 
-        id: StateId, 
-        memo: &mut Vec<HashIncrement>
-    ) {
-        let mut counter: HashIncrement = 0;
-        let num_arcs = states[id].arcs.len();
-        for tid in 0..num_arcs {
-            counter = DawgBuilder::compute_trans_hash(counter, states, id, tid, memo);
-        }
-    }
-
-    fn compute_trans_hash(
-        counter: HashIncrement,
-        states:  &mut Vec<State>,
-        state_id: StateId,
-        trans_id: usize,
-        memo: &mut Vec<HashIncrement>
-    ) -> HashIncrement {
-        let mut increment = counter;
-        let target = states[state_id].arcs[trans_id].target;
-        if states[target].is_final() {
-            increment += 1;
-        }
-        states[state_id].arcs[trans_id].hash_increment = increment;
-        counter + DawgBuilder::right_lang_size(states, target, memo)
-    }
-
-    fn right_lang_size(
-        states: &mut Vec<State>, 
-        id: StateId, 
-        memo: &mut Vec<HashIncrement>
-    ) -> HashIncrement {
-        let mut counter = memo[id];
-        if counter > 0 {
-            return counter;
-        }
-        if states[id].is_final() {
-            counter = 1;
-        }
-        for tid in 0..states[id].arcs.len() {
-            let tgt = states[id].arcs[tid].target;
-            counter += DawgBuilder::right_lang_size(states, tgt, memo);
-        }
-        memo[id] = counter;
-        counter
     }
 
     pub fn add_word(mut self, word: &str) -> DawgBuilder {
@@ -156,6 +106,8 @@ impl DawgBuilder {
         let (common_prefix, last_state) = self.recognized_prefix(word);
         trace!("add_word: common_prefix: '{}'; last_state: {}", common_prefix, last_state);
         if self.has_any_children(last_state) {
+            // replace or register the descendants of last_state
+            // (but not last_state itself)
             self.replace_or_register(last_state);
         }
         let current_suffix = &word[common_prefix.len()..];
@@ -293,6 +245,81 @@ impl DawgBuilder {
     fn replace_last_child(&mut self, par_id: StateId, eq_id: StateId) {
         let parent = self.states.at_mut(par_id);
         parent.set_last_child(eq_id);
+    }
+
+}
+
+
+pub struct HashBuilder {
+    dawg: DAWG,
+}
+
+
+impl HashBuilder {
+
+    pub fn build(mut self) -> DAWG {
+        // We should be able to discard the DawgBuilder data members at this point.
+        self.add_hash_increments();
+        self.dawg
+    }
+
+    fn add_hash_increments(&mut self) {
+        let size = self.dawg.states.len();
+        let mut memo: Vec<HashIncrement> = Vec::with_capacity(size);
+        for _ in 0..size {
+            memo.push(0);
+        }
+        for id in 0..size {
+            self.hashes_for_state(id, &mut memo);
+        }
+    }
+
+    fn hashes_for_state(
+        &mut self, 
+        id: StateId, 
+        memo: &mut Vec<HashIncrement>
+    ) {
+        let mut counter: HashIncrement = 0;
+        let num_arcs = self.dawg.states[id].arcs.len();
+        for tid in 0..num_arcs {
+            counter = self.compute_trans_hash(counter, id, tid, memo);
+        }
+    }
+
+    fn compute_trans_hash(
+        &mut self,
+        counter: HashIncrement,
+        state_id: StateId,
+        trans_id: usize,
+        memo: &mut Vec<HashIncrement>
+    ) -> HashIncrement {
+        let mut increment = counter;
+        let target = self.dawg.states[state_id].arcs[trans_id].target;
+        if self.dawg.states[target].is_final() {
+            increment += 1;
+        }
+        self.dawg.states[state_id].arcs[trans_id].hash_increment = increment;
+        counter + self.right_lang_size(target, memo)
+    }
+
+    fn right_lang_size(
+        &mut self, 
+        id: StateId, 
+        memo: &mut Vec<HashIncrement>
+    ) -> HashIncrement {
+        let mut counter = memo[id];
+        if counter > 0 {
+            return counter;
+        }
+        if self.dawg.states[id].is_final() {
+            counter = 1;
+        }
+        for tid in 0..self.dawg.states[id].arcs.len() {
+            let tgt = self.dawg.states[id].arcs[tid].target;
+            counter += self.right_lang_size(tgt, memo);
+        }
+        memo[id] = counter;
+        counter
     }
 
 }
