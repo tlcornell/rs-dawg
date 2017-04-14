@@ -7,3 +7,4 @@ authors = ["Tom Cornell <tom.cornell@gmail.com>"]
 log = "0.3.*"
 fern = "0.3.*"
 time = "0.1.*"
+getopts = "0.2.14"
