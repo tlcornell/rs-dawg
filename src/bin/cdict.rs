@@ -47,7 +47,6 @@ fn configure() -> AppConfig {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
     opts.optflag("h", "help", "print this message and exit");
-    opts.optopt("f", "file", "read term list from file", "NAME");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -68,8 +67,13 @@ fn configure() -> AppConfig {
 }
 
 fn print_usage(program: &str, opts: &Options) {
-    let brief = format!("Usage: {} [options] [DICT_FILE]\nIf no DICT_FILE present, expects input on stdin", program);
-    print!("{}", opts.usage(&brief));
+    let brief = format!(
+        "
+Usage: {} [options] [DICT_FILE]
+       DICT_FILE: Path to file of dictionary entries, one entry per line
+       If no DICT_FILE argument is present, expects input on stdin", 
+        program);
+    print!("{}\n", opts.usage(&brief));
     process::exit(1);
 }
 
