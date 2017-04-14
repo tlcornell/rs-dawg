@@ -18,3 +18,10 @@ In particular, they make a very good foundation for implementing Lexicons in NLP
 This is currently a work in progress. The library is complete, but untested and under-optimized. 
 And it still needs a means to serialize compiled DAWGs to file, and a reference implementation
 that will read a file and store the resulting DAWG.
+
+# References
+
+There are many implementations floating around on the web in various different languages. 
+But this is the paper you should read first:
+
+[Daciuk, Jan, et al. "Incremental construction of minimal acyclic finite-state automata." Computational linguistics 26.1 (2000): 3-16.](http://www.aclweb.org/anthology/J00-1002.pdf)
